@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Android.Bluetooth;
 using System.Threading.Tasks;
 using Android.Bluetooth.LE;
+using Android.OS;
+using ScanMode = Android.Bluetooth.LE.ScanMode;
 
 namespace Robotics.Mobile.Core.Bluetooth.LE
 {
@@ -22,7 +24,9 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 		protected BluetoothAdapter _adapter;
 		protected GattCallback _gattCallback;
 
-		public bool IsScanning {
+	    protected MyScanCallback _scanCallback;
+
+        public bool IsScanning {
 			get { return this._isScanning; }
 		} protected bool _isScanning;
 
@@ -48,7 +52,9 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 
 			this._gattCallback = new GattCallback (this);
 
-			this._gattCallback.DeviceConnected += (object sender, DeviceConnectionEventArgs e) => {
+            _scanCallback = new MyScanCallback(this);
+
+            this._gattCallback.DeviceConnected += (object sender, DeviceConnectionEventArgs e) => {
 				this._connectedDevices.Add ( e.Device);
 				this.DeviceConnected (this, e);
 			};
@@ -68,7 +74,7 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 //			throw new NotImplementedException ("Not implemented on Android yet, look at _adapter.StartLeScan() overload");
 		}
 		
-		public async void StartScanningForDevices (int timeOutSeconds = 10)
+		public async void StartScanningForDevices (int timeOutSeconds = 10, string serviceUuid = null)
 		{
 			Console.WriteLine ("Adapter: Starting a scan for devices.");
 
@@ -78,12 +84,23 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 			// start scanning
 			this._isScanning = true;
 
-		    //var scanFilter = new ScanFilter.Builder();
-      //      scanFilter.SetDeviceAddress()
+		    var scanFilterBuilder = new ScanFilter.Builder();
+		    if (!string.IsNullOrWhiteSpace(serviceUuid))
+		    {
+		        scanFilterBuilder.SetServiceUuid(ParcelUuid.FromString(serviceUuid));
+		    }
+		    var filter = scanFilterBuilder.Build();
 
-      //      this._adapter.BluetoothLeScanner.StartScan();
+		    var filterList = new List<ScanFilter>() {filter};
 
-            this._adapter.StartLeScan (this);
+		    var scanSettingBuilder = new ScanSettings.Builder();
+		    scanSettingBuilder.SetScanMode(ScanMode.Balanced);
+
+		    var scanSettings = scanSettingBuilder.Build();
+
+            this._adapter.BluetoothLeScanner.StartScan(filterList, scanSettings, _scanCallback);
+
+            //this._adapter.StartLeScan (this);
 
 			// in 10 seconds, stop the scan
 			await Task.Delay(TimeSpan.FromSeconds(timeOutSeconds));
@@ -100,9 +117,11 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 		public void StopScanningForDevices ()
 		{
 			Console.WriteLine ("Adapter: Stopping the scan for devices.");
-			this._isScanning = false;	
-			this._adapter.StopLeScan (this);
-		}
+			this._isScanning = false;
+            //this._adapter.StopLeScan (this);
+            this._adapter.BluetoothLeScanner.StopScan(_scanCallback);
+
+        }
 
 		public void OnLeScan (BluetoothDevice bleDevice, int rssi, byte[] scanRecord)
 		{
@@ -144,6 +163,32 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 			((Device) device).Disconnect();
 		}
 
+	    public class MyScanCallback : ScanCallback
+	    {
+	        private readonly Adapter _adapter;
+
+	        public MyScanCallback(Adapter adapter)
+	        {
+	            _adapter = adapter;
+	        }
+
+            public override void OnBatchScanResults(IList<ScanResult> results)
+	        {
+	            base.OnBatchScanResults(results);
+	        }
+
+	        public override void OnScanFailed(ScanFailure errorCode)
+	        {
+	            base.OnScanFailed(errorCode);
+	        }
+
+	        public override void OnScanResult(ScanCallbackType callbackType, ScanResult result)
+	        {
+	            _adapter.OnLeScan(result.Device, result.Rssi, result.ScanRecord.GetBytes());
+
+                base.OnScanResult(callbackType, result);
+	        }
+	    }
 	}
 }
 
