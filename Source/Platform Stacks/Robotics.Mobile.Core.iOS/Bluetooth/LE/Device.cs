@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-#if __UNIFIED__
-using CoreBluetooth;
-using Foundation;
-#else
 using MonoTouch.CoreBluetooth;
 using MonoTouch.Foundation;
-#endif
+
 
 namespace Robotics.Mobile.Core.Bluetooth.LE
 {

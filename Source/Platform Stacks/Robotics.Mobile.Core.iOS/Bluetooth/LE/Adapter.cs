@@ -4,13 +4,9 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 
-#if __UNIFIED__
-using CoreBluetooth;
-using CoreFoundation;
-#else
 using MonoTouch.CoreBluetooth;
 using MonoTouch.CoreFoundation;
-#endif
+
 
 namespace Robotics.Mobile.Core.Bluetooth.LE
 {
@@ -114,9 +110,9 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 
 		}
 			
-		public void StartScanningForDevices ()
+		public void StartScanningForDevices (int timeOutSeconds = 10)
 		{
-			StartScanningForDevices (serviceUuid: Guid.Empty);
+			StartScanningForDevices (Guid.Empty, timeOutSeconds);
 		}
 
 		readonly AutoResetEvent stateChanged = new AutoResetEvent (false);
@@ -130,7 +126,7 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 			}
 		}
 
-		public async void StartScanningForDevices (Guid serviceUuid)
+		public async void StartScanningForDevices (Guid serviceUuid, int timeOutSeconds = 10)
 		{
 			//
 			// Wait for the PoweredOn state
@@ -153,15 +149,14 @@ namespace Robotics.Mobile.Core.Bluetooth.LE
 			this._isScanning = true;
 			this._central.ScanForPeripherals ( serviceUuids );
 
-			// in 10 seconds, stop the scan
-			await Task.Delay (10000);
+            // in 10 seconds, stop the scan
+            await Task.Delay(TimeSpan.FromSeconds(timeOutSeconds));
 
-			// if we're still scanning
-			if (this._isScanning) {
+            // if we're still scanning
+            if (this._isScanning) {
 				Console.WriteLine ("BluetoothLEManager: Scan timeout has elapsed.");
-				this._isScanning = false;
-				this._central.StopScan ();
-				this.ScanTimeoutElapsed (this, new EventArgs ());
+                StopScanningForDevices();
+                this.ScanTimeoutElapsed (this, new EventArgs ());
 			}
 		}
 

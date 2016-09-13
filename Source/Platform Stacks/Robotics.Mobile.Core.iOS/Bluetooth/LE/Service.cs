@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-
-#if __UNIFIED__
-using CoreBluetooth;
-#else
 using MonoTouch.CoreBluetooth;
-#endif
+
 
 namespace Robotics.Mobile.Core.Bluetooth.LE
 {
-	public class Service : IService
+    public class Service : IService
 	{
 		public event EventHandler CharacteristicsDiscovered = delegate {};
 

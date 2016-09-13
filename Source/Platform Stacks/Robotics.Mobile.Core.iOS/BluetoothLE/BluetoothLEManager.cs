@@ -1,14 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
-#if __UNIFIED__
-using CoreBluetooth;
-using CoreFoundation;
-#else
 using MonoTouch.CoreBluetooth;
 using MonoTouch.CoreFoundation;
-#endif
 
 namespace Robotics.Mobile.Core.iOS
 {
